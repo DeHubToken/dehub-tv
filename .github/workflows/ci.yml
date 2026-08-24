@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Nothing in `.env.sample` is secret — every value in it ships inside the
+      # APK anyway — so CI uses it verbatim rather than carrying repo secrets.
+      - name: Use the sample environment
+        run: cp .env.sample .env
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # The typecheck alone does not prove the app starts. Metro resolves
+      # imports its own way, and a missing native module or a bad `@env` entry
+      # is invisible to tsc and fatal at launch — on a TV that means a white
+      # screen in someone's living room with no way to read the error. Bundling
+      # is the cheapest thing that catches it.
+      - name: Bundle
+        run: npx expo export --platform android --output-dir dist
+        env:
+          EXPO_TV: '1'
+
+      # `prebuild` is where the TV config plugin runs. If it stops applying the
+      # leanback launcher category, the app still builds and installs and simply
+      # never appears on the TV home screen — which looks like a store problem
+      # rather than a build one, so it is asserted here instead.
+      - name: Verify the Android TV manifest
+        run: |
+          npx expo prebuild --platform android --no-install
+          grep -q 'android.intent.category.LEANBACK_LAUNCHER' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:name="android.hardware.touchscreen" android:required="false"' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:banner=' android/app/src/main/AndroidManifest.xml
+        env:
+          EXPO_TV: '1'

@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "DeHub TV",
+    "slug": "dehubtv",
+    "scheme": "dehubtv",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#010305"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "io.dehub.tv",
+      "versionCode": 1,
+      "icon": "./assets/icon.png",
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
+      "allowBackup": false,
+      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "io.dehub.tv",
+      "jsEngine": "hermes"
+    },
+    "plugins": [
+      [
+        "@react-native-tvos/config-tv",
+        {
+          "isTV": true,
+          "androidTVBanner": "./assets/tv-banner.png",
+          "tvosDeploymentTarget": "15.1"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#010305",
+          "image": "./assets/splash.png",
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-video",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
