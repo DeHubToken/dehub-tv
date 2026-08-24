@@ -1,7 +1,7 @@
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Txt } from './Txt';
-import { colors, spacing, OVERSCAN, RAIL_GAP, FOCUS_SCALE, s } from '../config/theme';
+import { colors, spacing, OVERSCAN, RAIL_GAP, FOCUS_SCALE, STAGE_INSET, s } from '../config/theme';
 
 export interface GridProps<T> {
   data: T[];
@@ -78,7 +78,7 @@ export function Grid<T>({
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: OVERSCAN.x,
+    paddingHorizontal: STAGE_INSET,
   },
   column: {
     gap: RAIL_GAP,

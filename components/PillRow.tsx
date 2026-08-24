@@ -2,7 +2,7 @@ import React, { useCallback, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Focusable } from './Focusable';
 import { Txt } from './Txt';
-import { colors, radius, spacing, OVERSCAN, s } from '../config/theme';
+import { colors, radius, spacing, STAGE_INSET, s } from '../config/theme';
 
 export interface Pill {
   id: string;
@@ -47,7 +47,7 @@ export function PillRow({ pills, activeId, onSelect, autoFocusFirst, inset = tru
       // Android's scroll-to-focused-descendant.
       contentContainerStyle={[
         styles.content,
-        { paddingHorizontal: inset ? OVERSCAN.x : 0 },
+        { paddingHorizontal: inset ? STAGE_INSET : 0 },
       ]}
     >
       {pills.map((pill, index) => {

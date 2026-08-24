@@ -2,7 +2,7 @@ import React, { useCallback, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Txt } from './Txt';
 import { TVFocusGuideView } from '../lib/tv';
-import { colors, spacing, OVERSCAN, RAIL_GAP, FOCUS_SCALE, s } from '../config/theme';
+import { colors, spacing, OVERSCAN, RAIL_GAP, FOCUS_SCALE, STAGE_INSET, s } from '../config/theme';
 
 export interface RailRenderApi {
   /** Call from the item's own `onFocus`. Scrolls the row to keep it visible. */
@@ -99,8 +99,8 @@ export function Rail<T>({
           contentContainerStyle={[
             styles.content,
             {
-              paddingLeft: OVERSCAN.x,
-              paddingRight: OVERSCAN.x + overflowX,
+              paddingLeft: STAGE_INSET,
+              paddingRight: STAGE_INSET + overflowX,
               paddingVertical: overflowY,
               gap,
             },
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: spacing.md,
-    paddingHorizontal: OVERSCAN.x,
+    paddingHorizontal: STAGE_INSET,
     marginBottom: spacing.xs,
   },
   subtitle: {

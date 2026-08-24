@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Focusable } from './Focusable';
 import { Txt } from './Txt';
 import { Badge } from './Badge';
-import { colors, radius, spacing, OVERSCAN, s } from '../config/theme';
+import { colors, radius, spacing, STAGE_INSET, s } from '../config/theme';
 import { compactNumber } from '../lib/format';
 
 export interface HeroAction {
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   content: {
     position: 'absolute',
-    left: OVERSCAN.x,
+    left: STAGE_INSET,
     bottom: spacing.xxl,
     // Never the full width. Long titles running under the artwork's subject is
     // the thing that makes a hero look like a stock template.

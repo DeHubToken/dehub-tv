@@ -18,7 +18,7 @@ import {
 import { posterUrl } from '../lib/media';
 import { openFeedItem } from '../lib/open';
 import { useGrid } from '../lib/useGrid';
-import { colors, spacing, OVERSCAN } from '../config/theme';
+import { colors, spacing, OVERSCAN, STAGE_INSET } from '../config/theme';
 import type { RootStackParamList } from '../navigation/types';
 
 const COLUMNS = 4;
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: OVERSCAN.y,
-    paddingLeft: OVERSCAN.x,
+    paddingLeft: STAGE_INSET,
     gap: spacing.xs,
   },
   footer: {
