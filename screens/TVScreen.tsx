@@ -10,7 +10,7 @@ import { Loading, ErrorState } from '../components/States';
 import { getChannelsByCountry, getCountries } from '../services/liveTv.service';
 import { openChannel } from '../lib/open';
 import { useGrid } from '../lib/useGrid';
-import { colors, spacing, OVERSCAN } from '../config/theme';
+import { colors, spacing, OVERSCAN, STAGE_INSET } from '../config/theme';
 import type { RootStackParamList } from '../navigation/types';
 
 const COLUMNS = 6;
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: OVERSCAN.y,
-    paddingLeft: OVERSCAN.x,
+    paddingLeft: STAGE_INSET,
     gap: spacing.xs,
   },
 });

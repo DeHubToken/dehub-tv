@@ -12,6 +12,7 @@ import { getStreamBuckets } from '../services/live.service';
 import { getChannelsByCountry } from '../services/liveTv.service';
 import { cdnPath, posterUrl, livepeerThumbnail } from '../lib/media';
 import { openFeedItem, openStream, openChannel } from '../lib/open';
+import { timeAgo } from '../lib/format';
 import { colors, spacing, cardSize, OVERSCAN } from '../config/theme';
 import type { NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/types';
@@ -239,7 +240,11 @@ export function HomeScreen() {
                 stream.thumbnail ? cdnPath(stream.thumbnail) : livepeerThumbnail(stream.playbackId)
               }
               durationSeconds={stream.duration}
-              subtitle={stream.account?.displayName || stream.account?.username}
+              subtitle={
+                stream.account?.displayName ||
+                stream.account?.username ||
+                timeAgo(stream.startedAt || stream.createdAt)
+              }
               views={stream.totalViews}
               width={POSTER_WIDTH}
               onPress={() => openStream(navigation, stream)}

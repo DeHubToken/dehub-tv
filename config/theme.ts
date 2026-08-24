@@ -86,6 +86,20 @@ export const colors = {
  */
 export const OVERSCAN = { x: s(48), y: s(27) } as const;
 
+/**
+ * Horizontal padding for anything inside the browse stage.
+ *
+ * NOT `OVERSCAN.x`, and the difference matters. The stage already begins at
+ * `NAV_RAIL_WIDTH` (96 dp) — well past the 48 dp safe line — so padding it by
+ * another 48 would start the first tile 144 dp in and give up 15% of the panel
+ * to empty space. Overscan is a floor measured from the screen edge, not a
+ * margin every nested container re-applies.
+ *
+ * Full-bleed surfaces that sit outside the stage — the player's chrome — still
+ * use `OVERSCAN.x`, because for them the screen edge IS their edge.
+ */
+export const STAGE_INSET = s(20);
+
 export const spacing = {
   xs: s(4),
   sm: s(8),

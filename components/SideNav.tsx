@@ -24,7 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 /** Always-visible icon rail. Content is laid out to the right of this. */
-export const NAV_RAIL_WIDTH = s(76);
+export const NAV_RAIL_WIDTH = s(96);
 const NAV_EXPANDED_WIDTH = s(240);
 
 export interface SideNavProps {
@@ -102,7 +102,7 @@ export function SideNav({ active, onSelect }: SideNavProps) {
               borderRadius={radius.pill}
             >
               {(focused) => (
-                <View style={[styles.item, focused && styles.itemFocused]}>
+                <View style={[styles.item, isActive && styles.itemActive, focused && styles.itemFocused]}>
                   <Ionicons
                     name={item.icon}
                     size={s(24)}
@@ -129,7 +129,10 @@ export function SideNav({ active, onSelect }: SideNavProps) {
                       {item.label}
                     </Txt>
                   )}
-                  {isActive && !focused && <View style={styles.activeDot} />}
+                  {/* Active state is a white edge, per the house system — and
+                      unlike the thin left bar it replaces, a border around the
+                      whole pill has nothing an overscanning panel can crop off
+                      and leave meaningless. */}
                 </View>
               )}
             </Focusable>
@@ -151,18 +154,19 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
     justifyContent: 'center',
-    paddingLeft: spacing.lg,
+    // 34 + the item's own 14 puts the icon's left edge on the 48dp safe line.
+    paddingLeft: s(34),
     paddingRight: spacing.md,
     gap: spacing.sm,
   },
   brand: {
     height: s(52),
     justifyContent: 'center',
-    paddingLeft: spacing.md,
+    // No extra inset — the wordmark's left edge lines up with the icons below it.
     marginBottom: spacing.xl,
     position: 'absolute',
     top: OVERSCAN.y,
-    left: spacing.lg,
+    left: OVERSCAN.x,
   },
   item: {
     flexDirection: 'row',
@@ -171,16 +175,17 @@ const styles = StyleSheet.create({
     height: s(52),
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
+    // Reserved so the active border does not resize the row when it appears.
+    borderWidth: s(2),
+    borderColor: 'transparent',
+  },
+  itemActive: {
+    borderWidth: s(2),
+    borderColor: colors.borderFocused,
   },
   itemFocused: {
     backgroundColor: colors.controlFocused,
-  },
-  activeDot: {
-    position: 'absolute',
-    left: 4,
-    width: s(3),
-    height: s(20),
-    borderRadius: 2,
-    backgroundColor: colors.foreground,
+    borderWidth: s(2),
+    borderColor: colors.borderFocused,
   },
 });

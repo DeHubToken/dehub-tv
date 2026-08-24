@@ -18,7 +18,7 @@ import { searchChannels } from '../services/liveTv.service';
 import { posterUrl } from '../lib/media';
 import { openFeedItem, openChannel } from '../lib/open';
 import { useDebouncedValue } from '../lib/useDebouncedValue';
-import { colors, radius, spacing, cardSize, OVERSCAN, s } from '../config/theme';
+import { colors, radius, spacing, cardSize, OVERSCAN, STAGE_INSET, s } from '../config/theme';
 import type { RootStackParamList } from '../navigation/types';
 
 const MIN_QUERY_LENGTH = 2;
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: OVERSCAN.y,
-    paddingHorizontal: OVERSCAN.x,
+    paddingHorizontal: STAGE_INSET,
     gap: spacing.md,
     marginBottom: spacing.lg,
   },

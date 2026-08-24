@@ -1,5 +1,5 @@
 import { useWindowDimensions } from 'react-native';
-import { OVERSCAN, RAIL_GAP } from '../config/theme';
+import { STAGE_INSET, RAIL_GAP } from '../config/theme';
 import { NAV_RAIL_WIDTH } from '../components/SideNav';
 
 export interface GridMetrics {
@@ -22,7 +22,7 @@ export interface GridMetrics {
 export function useGrid(columns: number, aspect = 16 / 9): GridMetrics {
   const { width } = useWindowDimensions();
 
-  const usable = width - NAV_RAIL_WIDTH - OVERSCAN.x * 2 - RAIL_GAP * (columns - 1);
+  const usable = width - NAV_RAIL_WIDTH - STAGE_INSET * 2 - RAIL_GAP * (columns - 1);
   const cellWidth = Math.floor(usable / columns);
 
   return {
