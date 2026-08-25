@@ -3,6 +3,7 @@ import { NavigationContainer, DarkTheme, type Theme } from '@react-navigation/na
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BrowseScreen } from '../screens/BrowseScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
+import { CreatorScreen } from '../screens/CreatorScreen';
 import { colors } from '../config/theme';
 import type { RootStackParamList } from './types';
 
@@ -48,6 +49,7 @@ export function RootNavigator() {
           component={PlayerScreen}
           options={{ contentStyle: { backgroundColor: '#000' } }}
         />
+        <Stack.Screen name="Creator" component={CreatorScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

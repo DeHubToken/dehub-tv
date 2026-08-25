@@ -21,11 +21,29 @@ export interface PlayerParams {
   channelId?: string;
   /** Seconds. Live sources ignore it. */
   durationSeconds?: number;
+  /**
+   * The post's on-chain id, when it has one. Present for feed videos and
+   * absent for IPTV — which is exactly the distinction the player needs, since
+   * every engagement action is keyed on it. No tokenId, no Like button.
+   */
+  tokenId?: number | string;
+  /** Creator address and label, for the follow-through to their page. */
+  creatorAddress?: string;
+  creatorName?: string;
+}
+
+export interface CreatorParams {
+  /** Either works — `/account_info` resolves both. */
+  handle: string;
+  address?: string;
+  /** Shown immediately so the header does not pop in after the fetch. */
+  name?: string;
 }
 
 export type RootStackParamList = {
   Browse: undefined;
   Player: PlayerParams;
+  Creator: CreatorParams;
 };
 
 declare global {

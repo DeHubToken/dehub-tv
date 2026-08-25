@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  type NavigationProp,
+  type RouteProp,
+} from '@react-navigation/native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -13,6 +18,10 @@ import { ErrorState } from '../components/States';
 import { useTVEventHandler } from '../lib/tv';
 import { duration as fmtDuration } from '../lib/format';
 import { reportBrokenChannel } from '../services/liveTv.service';
+import { react, toggleSave } from '../services/engagement.service';
+import { useAuth } from '../contexts/AuthContext';
+import { openCreator } from '../lib/open';
+import { queryClient } from '../config/queryClient';
 import { colors, radius, spacing, OVERSCAN, s } from '../config/theme';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -40,9 +49,49 @@ const SEEK_STEP_SECONDS = 10;
  * thing keeping the curated table honest.
  */
 export function PlayerScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Player'>>();
-  const { kind, title, subtitle, sources, poster, channelId } = route.params;
+  const { kind, title, subtitle, sources, poster, channelId, tokenId, creatorAddress, creatorName } =
+    route.params;
+  const { isSignedIn } = useAuth();
+
+  // Optimistic, and deliberately not reconciled against the server afterwards.
+  // The endpoints toggle rather than set, so the local flip is always what the
+  // server did; re-reading would cost a round-trip mid-playback to learn
+  // something already known. A failure reverts.
+  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [likePending, setLikePending] = useState(false);
+  const [savePending, setSavePending] = useState(false);
+
+  const onLike = useCallback(async () => {
+    if (tokenId === undefined || likePending) return;
+    setLikePending(true);
+    setLiked((v) => !v);
+    try {
+      await react(tokenId, 'like');
+    } catch {
+      setLiked((v) => !v);
+    } finally {
+      setLikePending(false);
+    }
+  }, [likePending, tokenId]);
+
+  const onSave = useCallback(async () => {
+    if (tokenId === undefined || savePending) return;
+    setSavePending(true);
+    setSaved((v) => !v);
+    try {
+      await toggleSave(tokenId);
+      // The Saved rail on Home reads a different query; without this it keeps
+      // showing yesterday's shelf until the cache goes stale on its own.
+      void queryClient.invalidateQueries({ queryKey: ['feed', 'saved'] });
+    } catch {
+      setSaved((v) => !v);
+    } finally {
+      setSavePending(false);
+    }
+  }, [savePending, tokenId]);
 
   // ExoPlayer does not by itself stop the panel's screensaver, and a two-hour
   // film interrupted by a dimming TV is a bug report every time.
@@ -266,6 +315,40 @@ export function PlayerScreen() {
                   onPress={() => seekBy(SEEK_STEP_SECONDS)}
                 />
               )}
+              {/* Engagement is offered only when there is something to engage
+                  with (a tokenId — IPTV has none) and someone to attribute it
+                  to. Showing a Like button to a signed-out viewer is an
+                  invitation to a sign-in wall, which on a remote is a punishment. */}
+              {isSignedIn && tokenId !== undefined && (
+                <>
+                  <ControlButton
+                    icon={liked ? 'heart' : 'heart-outline'}
+                    label={liked ? 'Liked' : 'Like'}
+                    onPress={onLike}
+                    busy={likePending}
+                  />
+                  <ControlButton
+                    icon={saved ? 'bookmark' : 'bookmark-outline'}
+                    label={saved ? 'Saved' : 'Save'}
+                    onPress={onSave}
+                    busy={savePending}
+                  />
+                </>
+              )}
+
+              {!!creatorAddress && (
+                <ControlButton
+                  icon="person-outline"
+                  label={creatorName ? `More from ${creatorName}` : 'Creator'}
+                  onPress={() =>
+                    openCreator(navigation, {
+                      address: creatorAddress,
+                      name: creatorName,
+                    })
+                  }
+                />
+              )}
+
               <ControlButton icon="close" label="Back" onPress={() => navigation.goBack()} />
             </View>
           </View>
@@ -281,12 +364,16 @@ function ControlButton({
   onPress,
   autoFocus,
   primary,
+  busy,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   autoFocus?: boolean;
   primary?: boolean;
+  /** In flight. Dimmed but still focusable — a control that loses focus
+   *  mid-press throws the ring somewhere else and the user loses their place. */
+  busy?: boolean;
 }) {
   return (
     <Focusable
@@ -302,6 +389,7 @@ function ControlButton({
             styles.control,
             primary && styles.controlPrimary,
             focused && styles.controlFocused,
+            busy && styles.controlBusy,
           ]}
         >
           <Ionicons
@@ -403,5 +491,8 @@ const styles = StyleSheet.create({
   controlFocused: {
     backgroundColor: colors.controlFocused,
     borderColor: colors.borderFocused,
+  },
+  controlBusy: {
+    opacity: 0.55,
   },
 });
