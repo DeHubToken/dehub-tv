@@ -21,6 +21,7 @@ import { reportBrokenChannel } from '../services/liveTv.service';
 import { react, toggleSave } from '../services/engagement.service';
 import { useAuth } from '../contexts/AuthContext';
 import { openCreator } from '../lib/open';
+import { resumePosition, saveResumePoint } from '../lib/resume';
 import { queryClient } from '../config/queryClient';
 import { colors, radius, spacing, OVERSCAN, s } from '../config/theme';
 import type { RootStackParamList } from '../navigation/types';
@@ -115,6 +116,7 @@ export function PlayerScreen() {
     status: player.status,
     error: undefined,
   });
+
   const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
   const { currentTime } = useEvent(player, 'timeUpdate', {
     currentTime: player.currentTime,
@@ -122,6 +124,57 @@ export function PlayerScreen() {
     currentOffsetFromLive: null,
     bufferedPosition: 0,
   });
+
+  // ── Resume ────────────────────────────────────────────────────────────────
+  // Seek once, on the first ready. `readyToPlay` fires again after a buffer
+  // stall or a source retry, and seeking on those would drag the viewer back
+  // to where they came in every time the network hiccuped.
+  const resumeTarget = useRef(isLive ? 0 : resumePosition(tokenId));
+  const hasResumed = useRef(false);
+  const [resumedFrom, setResumedFrom] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (hasResumed.current || isLive) return;
+    if (status !== 'readyToPlay' || resumeTarget.current <= 0) return;
+    hasResumed.current = true;
+    player.currentTime = resumeTarget.current;
+    setResumedFrom(resumeTarget.current);
+    // Long enough to read from a sofa, short enough not to sit over the film.
+    const timer = setTimeout(() => setResumedFrom(null), 5_000);
+    return () => clearTimeout(timer);
+  }, [status, isLive, player]);
+
+  // Written on a timer rather than every tick: `timeUpdate` fires once a
+  // second, and a disk write per second for two hours is a lot of writes for a
+  // number that only has to survive someone turning the television off.
+  const lastSaved = useRef(0);
+  useEffect(() => {
+    if (isLive || tokenId === undefined) return;
+    if (currentTime - lastSaved.current < 5 && currentTime >= lastSaved.current) return;
+    lastSaved.current = currentTime;
+    saveResumePoint({
+      id: tokenId,
+      params: route.params,
+      position: currentTime,
+      duration: player.duration || route.params.durationSeconds || 0,
+    });
+  }, [currentTime, isLive, tokenId, route.params, player]);
+
+  // Leaving mid-video is the common case — the Back button, not the credits —
+  // so the final position is written on the way out as well.
+  useEffect(() => {
+    return () => {
+      if (isLive || tokenId === undefined) return;
+      const position = player.currentTime;
+      if (!Number.isFinite(position)) return;
+      saveResumePoint({
+        id: tokenId,
+        params: route.params,
+        position,
+        duration: player.duration || route.params.durationSeconds || 0,
+      });
+    };
+  }, [isLive, tokenId, route.params, player]);
 
   const showControls = useCallback(() => {
     setControlsVisible(true);
@@ -274,6 +327,13 @@ export function PlayerScreen() {
             {!!subtitle && (
               <Txt variant="body" color={colors.neutrals[300]} numberOfLines={1}>
                 {subtitle}
+              </Txt>
+            )}
+            {/* Said out loud, because a video that starts twenty minutes in
+                with no explanation reads as the app having lost its place. */}
+            {resumedFrom !== null && (
+              <Txt variant="meta" color={colors.neutrals[300]}>
+                Resumed from {fmtDuration(resumedFrom)}
               </Txt>
             )}
           </View>

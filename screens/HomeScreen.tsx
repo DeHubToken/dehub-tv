@@ -19,7 +19,8 @@ import { getStreamBuckets } from '../services/live.service';
 import { getChannelsByCountry } from '../services/liveTv.service';
 import { cdnPath, posterUrl, livepeerThumbnail } from '../lib/media';
 import { openFeedItem, openStream, openChannel } from '../lib/open';
-import { timeAgo } from '../lib/format';
+import { timeAgo, duration } from '../lib/format';
+import { useResumeShelf } from '../lib/useResumeShelf';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, cardSize, OVERSCAN } from '../config/theme';
 import type { NavigationProp } from '@react-navigation/native';
@@ -44,6 +45,7 @@ const POSTER_WIDTH = cardSize.wide.width;
 export function HomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, isSignedIn } = useAuth();
+  const resumeShelf = useResumeShelf();
 
   const trending = useQuery({
     queryKey: ['feed', 'trending'],
@@ -141,8 +143,33 @@ export function HomeScreen() {
       )}
 
       <View style={styles.rails}>
-        {/* Above everything else when it exists: the shelf you built yourself
-            beats anything the platform picked for you. */}
+        {/* First, above even Saved: something half-watched is the strongest
+            signal a lean-back device has, and picking it up again is the
+            single most common reason to switch the television on. */}
+        <Rail
+          title="Continue watching"
+          data={resumeShelf}
+          itemWidth={POSTER_WIDTH}
+          itemHeight={cardSize.wide.height}
+          keyExtractor={(entry) => entry.id}
+          renderItem={(entry, index, api) => (
+            <PosterCard
+              title={entry.params.title}
+              imageUrl={entry.params.poster}
+              subtitle={
+                entry.duration > 0
+                  ? `${duration(Math.max(0, entry.duration - entry.position))} left`
+                  : entry.params.creatorName
+              }
+              width={POSTER_WIDTH}
+              onPress={() => navigation.navigate('Player', entry.params)}
+              onFocus={() => api.focusIndex(index)}
+            />
+          )}
+        />
+
+        {/* Then the shelf you built yourself, which beats anything the
+            platform picked for you. */}
         <Rail
           title="Saved"
           data={savedItems}
