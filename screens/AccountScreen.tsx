@@ -52,7 +52,7 @@ export function AccountScreen() {
         <Note
           icon="eye-outline"
           title="This TV can watch, not spend"
-          body="Signing in here brings across your feed ordering, who you follow and what you have saved. It cannot tip, post or move funds — those still need your wallet on your phone."
+          body="Everything you have saved is on the home screen, and your likes carry across from your phone. This device cannot tip, post or move funds — those still need your wallet on a device that holds the key."
         />
         <Note
           icon="shield-checkmark-outline"

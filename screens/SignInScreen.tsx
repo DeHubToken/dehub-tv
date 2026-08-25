@@ -86,8 +86,8 @@ export function SignInScreen({ onDone }: { onDone?: () => void }) {
       <View style={styles.copy}>
         <Txt variant="title">Sign in to DeHub</Txt>
         <Txt variant="body" color={colors.mutedForeground}>
-          Signing in brings your account across: your ordering, the creators you
-          follow, and what you have saved.
+          Signing in puts everything you have saved on the home screen, and
+          carries your likes across from your phone.
         </Txt>
         <Txt variant="meta" color={colors.dimForeground} style={styles.assurance}>
           A television can watch, and only watch. Tipping, posting and anything
