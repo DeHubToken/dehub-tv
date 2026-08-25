@@ -7,12 +7,20 @@ import { Rail } from '../components/Rail';
 import { PosterCard } from '../components/PosterCard';
 import { ChannelCard } from '../components/ChannelCard';
 import { Loading, ErrorState } from '../components/States';
-import { getFeed, isPlayableOnTv, creatorName, resolveViewCount, type FeedItem } from '../services/feed.service';
+import {
+  getFeed,
+  getSavedPosts,
+  isPlayableOnTv,
+  creatorName,
+  resolveViewCount,
+  type FeedItem,
+} from '../services/feed.service';
 import { getStreamBuckets } from '../services/live.service';
 import { getChannelsByCountry } from '../services/liveTv.service';
 import { cdnPath, posterUrl, livepeerThumbnail } from '../lib/media';
 import { openFeedItem, openStream, openChannel } from '../lib/open';
 import { timeAgo } from '../lib/format';
+import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, cardSize, OVERSCAN } from '../config/theme';
 import type { NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/types';
@@ -35,6 +43,7 @@ const POSTER_WIDTH = cardSize.wide.width;
  */
 export function HomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { user, isSignedIn } = useAuth();
 
   const trending = useQuery({
     queryKey: ['feed', 'trending'],
@@ -64,6 +73,16 @@ export function HomeScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // The one rail that only exists for a signed-in viewer, and the reason
+  // signing in on a TV is worth the typing. Keyed by address so switching
+  // accounts cannot show the previous one's shelf.
+  const saved = useQuery({
+    queryKey: ['feed', 'saved', user?.address ?? ''],
+    queryFn: () => getSavedPosts({ address: user?.address }),
+    enabled: isSignedIn,
+    staleTime: 60_000,
+  });
+
   const trendingItems = useMemo(
     () => (trending.data?.result ?? []).filter(isPlayableOnTv),
     [trending.data],
@@ -73,6 +92,7 @@ export function HomeScreen() {
     [fresh.data],
   );
   const clipItems = useMemo(() => (clips.data?.result ?? []).filter(isPlayableOnTv), [clips.data]);
+  const savedItems = useMemo(() => (saved.data ?? []).filter(isPlayableOnTv), [saved.data]);
 
   const featured: FeedItem | undefined = trendingItems[0] ?? freshItems[0];
   const liveNow = streams.data?.live ?? [];
@@ -121,6 +141,28 @@ export function HomeScreen() {
       )}
 
       <View style={styles.rails}>
+        {/* Above everything else when it exists: the shelf you built yourself
+            beats anything the platform picked for you. */}
+        <Rail
+          title="Saved"
+          data={savedItems}
+          itemWidth={POSTER_WIDTH}
+          itemHeight={cardSize.wide.height}
+          keyExtractor={(item, i) => String(item.tokenId ?? i)}
+          renderItem={(item, index, api) => (
+            <PosterCard
+              title={item.name || 'Untitled'}
+              imageUrl={posterUrl(item, POSTER_WIDTH)}
+              durationSeconds={item.videoDuration}
+              subtitle={creatorName(item)}
+              views={resolveViewCount(item)}
+              width={POSTER_WIDTH}
+              onPress={() => openFeedItem(navigation, item)}
+              onFocus={() => api.focusIndex(index)}
+            />
+          )}
+        />
+
         {liveNow.length > 0 && (
           <Rail
             title="Live now"

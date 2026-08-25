@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import env from '../config/env';
 import { createLogger } from './logger';
 import { getAuthToken } from './session';
+import { getDeviceHeaders } from './device';
 
 const log = createLogger('api');
 
@@ -80,6 +81,10 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
     'X-Client-Type': 'tv',
     'X-Platform': 'androidtv',
     'X-App-Version': APP_VERSION,
+    // Identifies this TV as a revocable session in the user's Active sessions
+    // list. Sent on every request, not just sign-in, because the backend
+    // refreshes a session's last-seen from whatever it sees.
+    ...(await getDeviceHeaders()),
     ...headers,
   };
 

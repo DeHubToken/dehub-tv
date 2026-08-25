@@ -100,6 +100,21 @@ export const OVERSCAN = { x: s(48), y: s(27) } as const;
  */
 export const STAGE_INSET = s(20);
 
+/**
+ * Width of the collapsed navigation rail, and therefore the left gutter every
+ * stage-level surface is laid out against.
+ *
+ * It lives here rather than in `SideNav` because `useGrid` needs it to size a
+ * cell, and importing it from the component pulled the entire auth stack —
+ * including the Supabase client — into the module graph of every screen that
+ * lays out a grid. A layout constant should not boot a network client.
+ *
+ * 96 is not arbitrary: the rail's items pad 34 + 14, which puts the icons' left
+ * edge exactly on the 48 dp overscan-safe line, and 96 leaves the pill a
+ * sensible right margin past them.
+ */
+export const NAV_RAIL_WIDTH = s(96);
+
 export const spacing = {
   xs: s(4),
   sm: s(8),

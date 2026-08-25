@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
-import { SideNav, NAV_RAIL_WIDTH, type NavKey } from '../components/SideNav';
+import { SideNav, type NavKey } from '../components/SideNav';
+import { NAV_RAIL_WIDTH } from '../config/theme';
 import { HomeScreen } from './HomeScreen';
 import { VideosScreen } from './VideosScreen';
 import { LiveScreen } from './LiveScreen';
 import { TVScreen } from './TVScreen';
 import { SearchScreen } from './SearchScreen';
+import { AccountScreen } from './AccountScreen';
 import { colors } from '../config/theme';
 
 /**
@@ -53,6 +55,7 @@ export function BrowseScreen() {
         {section === 'live' && <LiveScreen key="live" />}
         {section === 'tv' && <TVScreen key="tv" />}
         {section === 'search' && <SearchScreen key="search" />}
+        {section === 'account' && <AccountScreen key="account" />}
       </View>
     </View>
   );

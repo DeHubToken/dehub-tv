@@ -5,9 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Focusable } from './Focusable';
 import { Txt } from './Txt';
 import { TVFocusGuideView } from '../lib/tv';
-import { colors, radius, spacing, OVERSCAN, s } from '../config/theme';
+import { useAuth } from '../contexts/AuthContext';
+import { colors, radius, spacing, OVERSCAN, NAV_RAIL_WIDTH, s } from '../config/theme';
 
-export type NavKey = 'home' | 'videos' | 'live' | 'tv' | 'search';
+export type NavKey = 'home' | 'videos' | 'live' | 'tv' | 'search' | 'account';
 
 export interface NavItem {
   key: NavKey;
@@ -21,10 +22,13 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'live', label: 'Live', icon: 'radio' },
   { key: 'tv', label: 'Live TV', icon: 'tv' },
   { key: 'search', label: 'Search', icon: 'search' },
+  // Label is overridden with the signed-in name below — a nav that still says
+  // "Sign in" after you have signed in is the most common way a TV app leaves
+  // people unsure whether it worked.
+  { key: 'account', label: 'Sign in', icon: 'person-circle-outline' },
 ];
 
-/** Always-visible icon rail. Content is laid out to the right of this. */
-export const NAV_RAIL_WIDTH = s(96);
+/** How wide the rail grows when focus enters it. */
 const NAV_EXPANDED_WIDTH = s(240);
 
 export interface SideNavProps {
@@ -47,6 +51,7 @@ export interface SideNavProps {
  * standing in it tells you nothing while you are browsing.
  */
 export function SideNav({ active, onSelect }: SideNavProps) {
+  const { user, isSignedIn } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const width = useRef(new Animated.Value(NAV_RAIL_WIDTH)).current;
 
@@ -91,6 +96,10 @@ export function SideNav({ active, onSelect }: SideNavProps) {
 
         {NAV_ITEMS.map((item) => {
           const isActive = item.key === active;
+          const label =
+            item.key === 'account' && isSignedIn
+              ? user?.displayName || user?.username || 'Account'
+              : item.label;
           return (
             <Focusable
               key={item.key}
@@ -126,7 +135,7 @@ export function SideNav({ active, onSelect }: SideNavProps) {
                             : colors.mutedForeground
                       }
                     >
-                      {item.label}
+                      {label}
                     </Txt>
                   )}
                   {/* Active state is a white edge, per the house system — and

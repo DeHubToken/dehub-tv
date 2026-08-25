@@ -12,6 +12,7 @@ import {
   Exo_700Bold,
 } from '@expo-google-fonts/exo';
 import { RootNavigator } from './navigation/RootNavigator';
+import { AuthProvider } from './contexts/AuthContext';
 import { queryClient } from './config/queryClient';
 import { colors } from './config/theme';
 
@@ -56,10 +57,12 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <View style={styles.root}>
-          <StatusBar hidden />
-          <RootNavigator />
-        </View>
+        <AuthProvider>
+          <View style={styles.root}>
+            <StatusBar hidden />
+            <RootNavigator />
+          </View>
+        </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

@@ -1,27 +1,33 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
- * Where the signed-in session will live.
+ * The signed-in session, as it exists on a television.
  *
- * There is no sign-in surface in this build, and that is a decision rather than
- * an omission: the whole DeHub catalogue answers unauthenticated (`/feed` and
- * `/live` both do), so a TV can be genuinely useful before anyone has typed
- * anything. What it must never do is ask someone to enter a wallet, a seed
- * phrase or a password on a remote control — that is a keyboard the user does
- * not have, guarding a credential they cannot afford to fat-finger.
+ * Two properties of this design are deliberate and worth defending.
  *
- * The shape it will take instead is a device-pairing code: the TV shows a short
- * code, the phone app or dehub.io claims it, and the backend hands the TV a
- * token. Only the two functions below need to exist for that to slot in, which
- * is why they exist now — every call site is already token-aware, so pairing is
- * additive rather than a refactor.
+ * **The TV never holds a wallet key.** DeHub's own account model is a
+ * self-custody wallet whose key is encrypted at rest, and the phone and web
+ * clients derive it on-device. A TV must not: it is a shared appliance in a
+ * room the account holder does not always control, often signed in for years,
+ * and frequently resold or handed on with the flat. The backend's
+ * `POST web/auth/supabase` exchange exists precisely for this — it issues a
+ * session from the Supabase identity alone and, in its own words, "does not
+ * grant the ability to move funds". So the TV can watch, and cannot spend.
  *
- * SecureStore is deliberately not used: `expo-secure-store` is backed by the
- * Android keystore, which on a shared living-room device buys nothing a plain
- * app-private file does not already give, while adding a native module that has
- * to build for the TV target.
+ * **The Supabase session is thrown away after the exchange.** It is used once,
+ * to prove identity to our backend, and never stored. What persists is the
+ * DeHub token pair, which is revocable from any other device via Settings →
+ * Active sessions. A lingering Supabase session would be a second, unrevocable
+ * way into the account sitting in a living room.
+ *
+ * `expo-secure-store` is not used, on purpose: it is backed by the Android
+ * keystore, which on a device with no lock screen — the normal state of a TV —
+ * buys nothing over an app-private file, while adding a native module to build.
  */
+
 const TOKEN_KEY = 'dehub_tv_auth_token';
+const REFRESH_KEY = 'dehub_tv_refresh_token';
+const EXPIRES_KEY = 'dehub_tv_token_expires_at';
 const USER_KEY = 'dehub_tv_auth_user';
 
 export interface TvUser {
@@ -31,7 +37,7 @@ export interface TvUser {
   avatarImageUrl?: string;
 }
 
-/** Read-through cache: this sits in the header path of every request. */
+/** Read-through cache: `getAuthToken` sits in the header path of every request. */
 let cachedToken: string | null | undefined;
 
 export async function getAuthToken(): Promise<string | null> {
@@ -44,10 +50,43 @@ export async function getAuthToken(): Promise<string | null> {
   return cachedToken;
 }
 
-export async function setAuthToken(token: string | null): Promise<void> {
+export async function getRefreshToken(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(REFRESH_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Epoch ms, or null when unknown. */
+export async function getTokenExpiresAt(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(EXPIRES_KEY);
+    return raw ? Number(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface StoredSession {
+  token: string;
+  refreshToken?: string | null;
+  /** Seconds, as the backend reports it. */
+  expiresIn?: number | null;
+  user?: TvUser | null;
+}
+
+export async function saveSession({ token, refreshToken, expiresIn, user }: StoredSession) {
   cachedToken = token;
-  if (token) await AsyncStorage.setItem(TOKEN_KEY, token);
-  else await AsyncStorage.removeItem(TOKEN_KEY);
+  const writes: Promise<unknown>[] = [AsyncStorage.setItem(TOKEN_KEY, token)];
+
+  if (refreshToken) writes.push(AsyncStorage.setItem(REFRESH_KEY, refreshToken));
+  if (expiresIn) {
+    writes.push(AsyncStorage.setItem(EXPIRES_KEY, String(Date.now() + expiresIn * 1000)));
+  }
+  if (user) writes.push(AsyncStorage.setItem(USER_KEY, JSON.stringify(user)));
+
+  await Promise.all(writes).catch(() => {});
 }
 
 export async function getAuthUser(): Promise<TvUser | null> {
@@ -59,11 +98,7 @@ export async function getAuthUser(): Promise<TvUser | null> {
   }
 }
 
-export async function setAuthUser(user: TvUser | null): Promise<void> {
-  if (user) await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
-  else await AsyncStorage.removeItem(USER_KEY);
-}
-
 export async function clearSession(): Promise<void> {
-  await Promise.all([setAuthToken(null), setAuthUser(null)]);
+  cachedToken = null;
+  await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_KEY, EXPIRES_KEY, USER_KEY]).catch(() => {});
 }

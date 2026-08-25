@@ -1,6 +1,5 @@
 import { useWindowDimensions } from 'react-native';
-import { STAGE_INSET, RAIL_GAP } from '../config/theme';
-import { NAV_RAIL_WIDTH } from '../components/SideNav';
+import { STAGE_INSET, RAIL_GAP, NAV_RAIL_WIDTH } from '../config/theme';
 
 export interface GridMetrics {
   cellWidth: number;

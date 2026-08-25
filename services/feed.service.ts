@@ -168,6 +168,36 @@ export async function getFeed(params: FeedParams = {}): Promise<FeedResponse> {
 }
 
 /**
+ * The signed-in user's saved posts.
+ *
+ * Two shape traps, both inherited from the endpoint and both silent if missed:
+ * `page` is ZERO-indexed here while `/feed`'s is one-indexed, and the page size
+ * parameter is `unit`, not `limit`. Passing `limit` gets the default twenty and
+ * looks like it worked.
+ */
+export async function getSavedPosts(params: {
+  address?: string;
+  page?: number;
+  unit?: number;
+} = {}): Promise<FeedItem[]> {
+  const res = await apiClient.get<FeedResponse | FeedItem[] | { data?: FeedItem[] }>(
+    '/savedPosts',
+    {
+      params: {
+        page: params.page ?? 0,
+        unit: params.unit ?? 20,
+        address: params.address,
+      },
+    },
+  );
+
+  if (Array.isArray(res)) return res;
+  if (Array.isArray((res as FeedResponse)?.result)) return (res as FeedResponse).result;
+  if (Array.isArray((res as any)?.data)) return (res as any).data;
+  return [];
+}
+
+/**
  * Playable videos only.
  *
  * Two filters that matter on a TV and matter less elsewhere. A post still
