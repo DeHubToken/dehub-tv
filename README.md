@@ -110,14 +110,50 @@ Android TV store listings need their own artwork — the 320x180 banner in
 `assets/tv-banner.png` is the launcher tile, and Play requires a separate 1280x720
 feature graphic that is not in this repo yet.
 
+## Signing in
+
+Email and a six-digit code. It adds no backend surface — all three hops already
+run in production:
+
+1. `supabase.auth.signInWithOtp({ email })` mails the code
+2. `supabase.auth.verifyOtp` turns it into a Supabase session
+3. `POST web/auth/supabase` exchanges that for a DeHub token pair
+
+Steps 1 and 2 are exactly what the phone app's primary email login already does,
+which is also the evidence that the Supabase email template carries
+`{{ .Token }}` — without it, mobile email sign-in would be broken today.
+
+**The TV never holds a wallet key, and cannot spend.** The exchange endpoint
+issues a session from the Supabase identity alone and, in the backend's own
+words, "does not grant the ability to move funds". Tipping, posting and going
+live still need a wallet unlock on a device that has the key. That is the right
+trade for an appliance that sits in a shared room, is signed in for years, and
+gets resold with the flat.
+
+Three consequences worth knowing:
+
+- **`shouldCreateUser: false`.** Mobile is a signup surface and creates the
+  identity if it is missing; a TV must not. Signing up here would mint a second,
+  empty DeHub account with a wallet the TV cannot hold.
+- **A wallet-first account has no email until someone attaches one.** The
+  exchange answers `409 WALLET_NOT_LINKED`, and the sign-in screen spells out
+  the fix — dehub.io → Settings → Profile → Sign-in — because there is no way to
+  do it from a television.
+- **The Supabase session is discarded after the exchange.** What persists is the
+  DeHub token pair, which is revocable from any other device. A lingering
+  Supabase session would be a second, unrevocable way into the account sitting in
+  a living room.
+
+The TV sends `X-Device-Id` / `X-Device-Name` on every request, so it appears in
+Settings → Active sessions as "DeHub TV" and can be signed out remotely.
+
 ## Not built yet
 
-- **Sign-in.** Deliberate, not missing. Nobody should type a wallet address or a
-  seed phrase on a remote. The shape this needs is a device-pairing code — TV
-  shows a code, phone or dehub.io claims it, backend hands the TV a token — and
-  the token plumbing in `lib/session.ts` is already in place for it, so it is
-  additive rather than a refactor. Requires a backend endpoint.
-- **Continue watching**, which needs the above.
+- **QR pairing.** The nicer flow for someone already signed in on their phone:
+  TV shows a code, the phone approves it, no typing at all. It needs a backend
+  endpoint that does not exist — `src/pair/` in `dehub-stream-backend` is the
+  Omegle-style random chat system, unrelated. Sketch is in `docs/qr-pairing.md`.
+- **Continue watching**, which needs a backend to store progress.
 - **Audio stages.** The table reads anonymously but exposes exactly one row, so
   a rail would be a rail of one. Worth adding when there is something in it.
 - **Music.** Six `feed-audio` posts exist platform-wide.
