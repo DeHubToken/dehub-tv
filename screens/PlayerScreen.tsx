@@ -15,6 +15,7 @@ import { Txt } from '../components/Txt';
 import { Badge } from '../components/Badge';
 import { Focusable } from '../components/Focusable';
 import { ErrorState } from '../components/States';
+import { CommentsPanel } from '../components/CommentsPanel';
 import { useTVEventHandler } from '../lib/tv';
 import { duration as fmtDuration } from '../lib/format';
 import { reportBrokenChannel } from '../services/liveTv.service';
@@ -101,6 +102,7 @@ export function PlayerScreen() {
   const [sourceIndex, setSourceIndex] = useState(0);
   const [exhausted, setExhausted] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isLive = kind === 'live' || kind === 'channel';
@@ -249,6 +251,13 @@ export function PlayerScreen() {
   // The remote's Back button arrives as Android hardware back.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      // The comments panel takes the first Back, before the chrome does —
+      // otherwise reading them and pressing Back exits the video entirely.
+      if (commentsOpen) {
+        setCommentsOpen(false);
+        showControls();
+        return true;
+      }
       if (controlsVisible) {
         navigation.goBack();
         return true;
@@ -259,7 +268,7 @@ export function PlayerScreen() {
       return true;
     });
     return () => sub.remove();
-  }, [controlsVisible, navigation, showControls]);
+  }, [commentsOpen, controlsVisible, navigation, showControls]);
 
   const total = player.duration || route.params.durationSeconds || 0;
   const progress = useMemo(() => {
@@ -300,6 +309,12 @@ export function PlayerScreen() {
             Loading {title}…
           </Txt>
         </View>
+      )}
+
+      {/* Over the picture, not instead of it: the film keeps playing while the
+          comments are read, which is the point of a side channel. */}
+      {tokenId !== undefined && (
+        <CommentsPanel tokenId={tokenId} visible={commentsOpen} />
       )}
 
       {controlsVisible && (
@@ -394,6 +409,16 @@ export function PlayerScreen() {
                     busy={savePending}
                   />
                 </>
+              )}
+
+              {/* Reading the room. Offered signed out too — the comments are
+                  public, and a television is mostly a signed-out device. */}
+              {tokenId !== undefined && (
+                <ControlButton
+                  icon={commentsOpen ? 'chatbubble' : 'chatbubble-outline'}
+                  label="Comments"
+                  onPress={() => setCommentsOpen((v) => !v)}
+                />
               )}
 
               {!!creatorAddress && (
