@@ -30,6 +30,34 @@ export function openFeedItem(navigation: Nav, item: FeedItem) {
     sources: [url],
     poster: item.imageUrl ? cdnPath(item.imageUrl) : undefined,
     durationSeconds: item.videoDuration,
+    tokenId: item.tokenId,
+    creatorAddress: item.minter ?? item.minterUser?.address,
+    creatorName: creatorName(item),
+  });
+}
+
+export function openCreator(
+  navigation: Nav,
+  creator: { handle?: string; address?: string; name?: string },
+) {
+  // Prefer the username: it is what `/account_info` indexes fastest and what a
+  // person recognises if the screen ever shows the raw handle.
+  const handle = creator.handle || creator.address;
+  if (!handle) return;
+  navigation.navigate('Creator', {
+    handle,
+    address: creator.address,
+    name: creator.name,
+  });
+}
+
+/** Same as `openCreator`, from a feed item, so call sites do not re-derive the
+ *  three fields the creator's identity is spread across. */
+export function openCreatorFromItem(navigation: Nav, item: FeedItem) {
+  openCreator(navigation, {
+    handle: item.minterUsername ?? item.minterUser?.username,
+    address: item.minter ?? item.minterUser?.address,
+    name: creatorName(item),
   });
 }
 

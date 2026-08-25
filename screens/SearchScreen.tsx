@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Rail } from '../components/Rail';
 import { PosterCard } from '../components/PosterCard';
 import { ChannelCard } from '../components/ChannelCard';
+import { AccountCard } from '../components/AccountCard';
 import { Txt } from '../components/Txt';
 import { EmptyState } from '../components/States';
 import {
@@ -15,8 +16,9 @@ import {
   resolveViewCount,
 } from '../services/feed.service';
 import { searchChannels } from '../services/liveTv.service';
+import { searchAccounts } from '../services/user.service';
 import { posterUrl } from '../lib/media';
-import { openFeedItem, openChannel } from '../lib/open';
+import { openFeedItem, openChannel, openCreator } from '../lib/open';
 import { useDebouncedValue } from '../lib/useDebouncedValue';
 import { colors, radius, spacing, cardSize, OVERSCAN, STAGE_INSET, s } from '../config/theme';
 import type { RootStackParamList } from '../navigation/types';
@@ -55,10 +57,19 @@ export function SearchScreen() {
     enabled,
   });
 
+  const accounts = useQuery({
+    queryKey: ['search', 'accounts', query],
+    queryFn: () => searchAccounts(query, 12),
+    enabled,
+  });
+
   const videoItems = (videos.data?.result ?? []).filter(isPlayableOnTv);
   const channelItems = channels.data ?? [];
-  const settled = enabled && !videos.isFetching && !channels.isFetching;
-  const nothingFound = settled && !videoItems.length && !channelItems.length;
+  const accountItems = accounts.data ?? [];
+  const settled =
+    enabled && !videos.isFetching && !channels.isFetching && !accounts.isFetching;
+  const nothingFound =
+    settled && !videoItems.length && !channelItems.length && !accountItems.length;
 
   return (
     <ScrollView
@@ -110,6 +121,30 @@ export function SearchScreen() {
 
       {enabled && (
         <View style={styles.results}>
+          {/* Creators lead. Somebody typing a name is almost always looking for
+              a person, and burying them under that person's videos means
+              scrolling past the answer to reach it. */}
+          <Rail
+            title="Creators"
+            data={accountItems}
+            itemWidth={cardSize.square.width}
+            itemHeight={cardSize.square.height}
+            keyExtractor={(a, i) => String(a.address ?? a.username ?? i)}
+            renderItem={(account, index, api) => (
+              <AccountCard
+                account={account}
+                onPress={() =>
+                  openCreator(navigation, {
+                    handle: account.username,
+                    address: account.address,
+                    name: account.displayName || account.username,
+                  })
+                }
+                onFocus={() => api.focusIndex(index)}
+              />
+            )}
+          />
+
           <Rail
             title="Videos"
             subtitle={videoItems.length ? `${videoItems.length} results` : undefined}

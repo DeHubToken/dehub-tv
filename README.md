@@ -147,13 +147,50 @@ Three consequences worth knowing:
 The TV sends `X-Device-Id` / `X-Device-Name` on every request, so it appears in
 Settings → Active sessions as "DeHub TV" and can be signed out remotely.
 
+## What a TV can and cannot do
+
+This app is not, and should not become, feature-parity with the phone. The
+surface splits four ways, and only one of those is a backlog.
+
+**Can, and does.** Watch anything; browse and search videos, clips, livestreams,
+replays and 700 IPTV channels; creator pages; react; save; follow. Every write
+in that list is a plain bearer-token call — `/request_reaction`, `/savePost`,
+`/request_follow` — with no wallet anywhere near it, which is exactly why a
+keyless device may make them.
+
+**Cannot, structurally.** Tipping, gifting, buying (PPV, plans, stores, dpay),
+minting, posting, going live — everything on-chain. These need a wallet
+signature, and the TV holds no key by design. This is the security model
+working, not a gap to close. If a change here ever starts needing a signature,
+it belongs on a phone instead.
+
+**Could, but shouldn't.** DMs, comments, composing, community moderation. All
+reachable over the same token, all requiring sustained typing on a D-pad
+keyboard. A reply written at one character per two seconds is not a feature.
+
+**Blocked on native modules.** Live audio Stages need Agora and livestream
+publishing needs WebRTC; neither is worth building for the TV target. Stage
+*recordings* are plain audio URLs and would play fine — that one is a real
+backlog item.
+
+The short version: roughly everything consumptive is reachable, everything
+custodial is not, and the middle is a judgement call that mostly lands on "no".
+
 ## Not built yet
 
 - **QR pairing.** The nicer flow for someone already signed in on their phone:
   TV shows a code, the phone approves it, no typing at all. It needs a backend
   endpoint that does not exist — `src/pair/` in `dehub-stream-backend` is the
   Omegle-style random chat system, unrelated. Sketch is in `docs/qr-pairing.md`.
-- **Continue watching**, which needs a backend to store progress.
+- **Recently watched.** `GET /my_watched_nfts` already exists and is populated
+  as a side effect of view reporting — so this is really "start reporting
+  views", which is a data-integrity decision (see below) rather than a feature.
+- **Stage recordings.** Live rooms need Agora, but a finished stage is an audio
+  URL and would play today. Worth doing once there is more than one row in
+  `audio_spaces`.
+- **The nine-reaction picker.** The service already types the full set; the UI
+  sends `like` only, because a nine-way choice is a lot of D-pad travel for a
+  decision nobody makes from a sofa.
 - **Audio stages.** The table reads anonymously but exposes exactly one row, so
   a rail would be a rail of one. Worth adding when there is something in it.
 - **Music.** Six `feed-audio` posts exist platform-wide.
