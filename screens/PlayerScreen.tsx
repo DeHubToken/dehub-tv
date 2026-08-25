@@ -16,6 +16,7 @@ import { Badge } from '../components/Badge';
 import { Focusable } from '../components/Focusable';
 import { ErrorState } from '../components/States';
 import { CommentsPanel } from '../components/CommentsPanel';
+import { TipSheet } from '../components/TipSheet';
 import { useTVEventHandler } from '../lib/tv';
 import { duration as fmtDuration } from '../lib/format';
 import { reportBrokenChannel } from '../services/liveTv.service';
@@ -65,6 +66,7 @@ export function PlayerScreen() {
   const [saved, setSaved] = useState(false);
   const [likePending, setLikePending] = useState(false);
   const [savePending, setSavePending] = useState(false);
+  const [tipping, setTipping] = useState(false);
 
   const onLike = useCallback(async () => {
     if (tokenId === undefined || likePending) return;
@@ -408,6 +410,22 @@ export function PlayerScreen() {
                     onPress={onSave}
                     busy={savePending}
                   />
+                  {/* Only when there is somebody to pay. A Tip button that
+                      opens a sheet and then discovers it has no recipient is
+                      worse than no button. */}
+                  {!!creatorAddress && (
+                    <ControlButton
+                      icon="cash-outline"
+                      label="Tip"
+                      onPress={() => {
+                        // Pin the chrome open — the sheet is what the user is
+                        // looking at now, and having it vanish under the
+                        // four-second auto-hide would be baffling.
+                        if (hideTimer.current) clearTimeout(hideTimer.current);
+                        setTipping(true);
+                      }}
+                    />
+                  )}
                 </>
               )}
 
@@ -438,6 +456,19 @@ export function PlayerScreen() {
             </View>
           </View>
         </>
+      )}
+
+      {tipping && tokenId !== undefined && !!creatorAddress && (
+        <TipSheet
+          tokenId={tokenId}
+          recipient={creatorAddress}
+          recipientName={creatorName}
+          postTitle={title}
+          onClose={() => {
+            setTipping(false);
+            showControls();
+          }}
+        />
       )}
     </View>
   );

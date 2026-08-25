@@ -176,8 +176,32 @@ backlog item.
 The short version: roughly everything consumptive is reachable, everything
 custodial is not, and the middle is a judgement call that mostly lands on "no".
 
+## Tipping from the sofa
+
+The TV cannot send a tip — it holds no key. What it does is **raise a request**
+that the owner's phone approves and submits with the wallet it already has
+unlocked (`dehub-stream-backend` PR #164, `tv/requests`).
+
+What goes over the wire is **intent, never contract parameters**: the TV says
+"100 DHB to this address, for this post" and the phone resolves the token
+address, decimals, controller and chain. A television that could name a token
+address is a television that could be talked into naming the wrong one.
+
+Amounts are presets only. A free-text amount means typing digits on a D-pad,
+and the least acceptable place for that is the screen deciding how much money
+leaves your account.
+
+The waiting state is the real screen here, not an afterthought — the user has
+pressed a button and nothing further will happen on the television until they
+pick up a different device. Said plainly and immediately, or the natural
+reading is that the app broke and the natural next move is to press it again.
+
 ## Not built yet
 
+- **The phone half of tipping.** `tv/requests` is live in production and the TV
+  raises requests against it, but nothing answers them yet — `dehub-mobile`
+  needs a pending-approvals surface that signs and reports the txHash back.
+  Until that ships, a tip raised here will always time out.
 - **QR pairing.** The nicer flow for someone already signed in on their phone:
   TV shows a code, the phone approves it, no typing at all. It needs a backend
   endpoint that does not exist — `src/pair/` in `dehub-stream-backend` is the
