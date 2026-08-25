@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Txt } from '../components/Txt';
 import { Focusable } from '../components/Focusable';
 import { useAuth } from '../contexts/AuthContext';
+import { PairingPanel } from '../components/PairingPanel';
 import {
   sendEmailCode,
   verifyEmailCode,
@@ -35,8 +36,17 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  * app instead.
  */
 export function SignInScreen({ onDone }: { onDone?: () => void }) {
-  const { adopt } = useAuth();
+  const { adopt, refresh } = useAuth();
 
+  /**
+   * Pairing leads, because it is the one that does not involve typing.
+   *
+   * Email works and is the fallback — for someone with no phone to hand, or
+   * whose phone is not signed in either. Leading with it would ask everybody to
+   * spell out an address on a D-pad keyboard to reach the option that would
+   * have taken them eight characters.
+   */
+  const [mode, setMode] = useState<'pair' | 'email'>('pair');
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -98,7 +108,25 @@ export function SignInScreen({ onDone }: { onDone?: () => void }) {
       </View>
 
       <View style={styles.form}>
-        {step === 'email' ? (
+        {mode === 'pair' && (
+          <>
+            <PairingPanel
+              onPaired={() => {
+                void refresh();
+                onDone?.();
+              }}
+            />
+            <Action
+              label="Use my email instead"
+              icon="mail-outline"
+              subdued
+              onPress={() => setMode('email')}
+            />
+          </>
+        )}
+
+        {mode === 'email' &&
+          (step === 'email' ? (
           <>
             <Txt variant="rail">What is your email address?</Txt>
             <Field
@@ -157,7 +185,7 @@ export function SignInScreen({ onDone }: { onDone?: () => void }) {
               />
             </View>
           </>
-        )}
+          ))}
 
         {!!error && <Problem error={error} appOrigin={env.APP_ORIGIN} />}
       </View>

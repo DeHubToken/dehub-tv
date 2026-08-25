@@ -112,8 +112,34 @@ feature graphic that is not in this repo yet.
 
 ## Signing in
 
-Email and a six-digit code. It adds no backend surface — all three hops already
-run in production:
+Two ways, pairing first.
+
+### Pair with your phone
+
+The TV shows an eight-character code; you type it into DeHub on a phone that is
+already signed in; the TV collects a session. No typing on a remote.
+
+There is deliberately **no QR code**. Rendering one needs either a native SVG
+module this app has avoided or a thousand-odd nested views for the matrix — and
+Netflix, Disney+ and Spotify all show a code and a short URL for the same
+reason: a code works when the camera does not, when the phone is across the
+room, and when someone is reading it out to another person. A QR is additive
+later, not a rewrite.
+
+It is a device-code flow, so it carries the device-code risk — approving a code
+somebody *else* is displaying hands them a session for your account. The server
+does what it can (two-minute expiry, ten approvals a minute, tokens minted only
+at collection) and the approving client names the device it is authorising,
+which is the part that actually stops it.
+
+The two halves use different keys on purpose: approving needs the short code,
+collecting needs a `pairingId` UUID only the television holds. So a code read
+off a photograph signs the reader's *own* account into someone else's TV, and
+never the other way round.
+
+### Or email and a six-digit code
+
+It adds no backend surface — all three hops already run in production:
 
 1. `supabase.auth.signInWithOtp({ email })` mails the code
 2. `supabase.auth.verifyOtp` turns it into a Supabase session
@@ -198,14 +224,16 @@ reading is that the app broke and the natural next move is to press it again.
 
 ## Not built yet
 
+- **The phone half of pairing.** `tv/pair/*` is live in production and this app
+  shows a code against it, but nothing claims one yet — `dehub-mobile` needs a
+  "Sign in a TV" screen. Until that ships, a pairing code will always expire.
 - **The phone half of tipping.** `tv/requests` is live in production and the TV
   raises requests against it, but nothing answers them yet — `dehub-mobile`
   needs a pending-approvals surface that signs and reports the txHash back.
   Until that ships, a tip raised here will always time out.
-- **QR pairing.** The nicer flow for someone already signed in on their phone:
-  TV shows a code, the phone approves it, no typing at all. It needs a backend
-  endpoint that does not exist — `src/pair/` in `dehub-stream-backend` is the
-  Omegle-style random chat system, unrelated. Sketch is in `docs/qr-pairing.md`.
+- **An actual QR.** The code works and is what the big services do; a scannable
+  version is a nicety on top, and costs either a native SVG module or a
+  server-rendered image. See `docs/qr-pairing.md`.
 - **Recently watched.** `GET /my_watched_nfts` already exists and is populated
   as a side effect of view reporting — so this is really "start reporting
   views", which is a data-integrity decision (see below) rather than a feature.

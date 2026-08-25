@@ -17,6 +17,15 @@ interface AuthValue {
   isRestoring: boolean;
   /** Called by the sign-in screen once the exchange has stored a session. */
   adopt: (user: TvUser | null) => void;
+  /**
+   * Re-read whatever is in storage and adopt it.
+   *
+   * Pairing writes the session inside the poll — it has to, because the server
+   * hands the tokens over exactly once and a caller that received them and then
+   * failed to persist them would have burned the code. So there is nothing to
+   * pass back up; the context just re-reads.
+   */
+  refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -25,6 +34,7 @@ const AuthContext = createContext<AuthValue>({
   isSignedIn: false,
   isRestoring: true,
   adopt: () => {},
+  refresh: async () => {},
   signOut: async () => {},
 });
 
@@ -87,6 +97,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void queryClient.invalidateQueries();
   }, []);
 
+  const refresh = useCallback(async () => {
+    const token = await getAuthToken();
+    if (!token) return;
+    setUser(await getAuthUser());
+    setIsSignedIn(true);
+    void queryClient.invalidateQueries();
+  }, []);
+
   const signOut = useCallback(async () => {
     await doSignOut();
     setUser(null);
@@ -95,8 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthValue>(
-    () => ({ user, isSignedIn, isRestoring, adopt, signOut }),
-    [user, isSignedIn, isRestoring, adopt, signOut],
+    () => ({ user, isSignedIn, isRestoring, adopt, refresh, signOut }),
+    [user, isSignedIn, isRestoring, adopt, refresh, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
