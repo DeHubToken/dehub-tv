@@ -179,11 +179,17 @@ export function TipSheet({
             <ActivityIndicator size="large" color={colors.foreground} />
             <Txt variant="title">Check your phone</Txt>
             <Txt variant="body" color={colors.neutrals[300]} style={styles.centredText}>
-              Open DeHub on your phone and approve the {compactNumber(amount ?? 0)} DHB tip
-              {recipientName ? ` to ${recipientName}` : ''}.
+              Approve the {compactNumber(amount ?? 0)} DHB tip
+              {recipientName ? ` to ${recipientName}` : ''} in the DeHub app.
+            </Txt>
+            {/* The exact path, not just "on your phone". The request expires in
+                five minutes, and a person hunting through settings for a screen
+                they have never opened will not make it in time. */}
+            <Txt variant="meta" color={colors.neutrals[400]} style={styles.centredText}>
+              Settings → Privacy → TV requests
             </Txt>
             <Txt variant="meta" color={colors.dimForeground}>
-              The request expires in a few minutes.
+              This request expires in five minutes.
             </Txt>
           </View>
         )}
