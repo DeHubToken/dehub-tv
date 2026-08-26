@@ -14,6 +14,8 @@ type Phase = 'starting' | 'waiting' | 'expired' | 'rejected' | 'error';
 export interface PairingPanelProps {
   /** Fired once the session has been stored. */
   onPaired: () => void;
+  /** Claim the screen's initial focus. One element per screen may. */
+  autoFocus?: boolean;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface PairingPanelProps {
  * already excludes I, O, 0, 1, S and 5 from the alphabet; the display carries
  * that the rest of the way with wide tracking and a monospaced rhythm.
  */
-export function PairingPanel({ onPaired }: PairingPanelProps) {
+export function PairingPanel({ onPaired, autoFocus }: PairingPanelProps) {
   const [phase, setPhase] = useState<Phase>('starting');
   const [pairing, setPairing] = useState<Pairing | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -128,6 +130,38 @@ export function PairingPanel({ onPaired }: PairingPanelProps) {
           <Txt variant="meta" color={colors.dimForeground}>
             Or visit {host}/link · code expires in {secondsLeft}s
           </Txt>
+
+          {/*
+            The waiting state has nothing else to focus, and something must hold
+            the ring. Left to itself the only focusable on the screen is "Use my
+            email instead" — so a reflexive press of OK throws the user out of
+            the flow they are halfway through. A restart is the harmless answer:
+            worst case they get a fresh code, which is what someone pressing
+            buttons at a stale one wanted anyway.
+          */}
+          <Focusable
+            onPress={() => void begin()}
+            autoFocus={autoFocus}
+            scaleOnFocus={false}
+            ring={false}
+            borderRadius={radius.pill}
+          >
+            {(focused) => (
+              <View style={[styles.subtle, focused && styles.actionFocused]}>
+                <Ionicons
+                  name="refresh"
+                  size={s(18)}
+                  color={focused ? colors.controlFocusedForeground : colors.mutedForeground}
+                />
+                <Txt
+                  variant="meta"
+                  color={focused ? colors.controlFocusedForeground : colors.mutedForeground}
+                >
+                  Get a different code
+                </Txt>
+              </View>
+            )}
+          </Focusable>
         </>
       )}
 
@@ -192,6 +226,18 @@ const styles = StyleSheet.create({
     // the cheapest thing that stops two characters being read as one.
     letterSpacing: s(6),
     fontFamily: 'Exo_700Bold',
+  },
+  subtle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: s(2),
+    borderColor: 'transparent',
   },
   action: {
     flexDirection: 'row',

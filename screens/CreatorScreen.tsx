@@ -215,7 +215,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingTop: OVERSCAN.y,
-    paddingLeft: STAGE_INSET,
+    // No horizontal padding here. `Grid` pads its own content, and `useGrid`
+    // budgets for exactly that one inset — padding the root as well made every
+    // row one STAGE_INSET wider than the space it had, clipping the rightmost
+    // column. The header sits inside the grid, so it is inset already.
   },
   header: {
     flexDirection: 'row',

@@ -6,7 +6,14 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { getAuthToken, getAuthUser, getTokenExpiresAt, type TvUser } from '../lib/session';
+import {
+  getAuthToken,
+  getAuthUser,
+  getTokenExpiresAt,
+  onSessionEnded,
+  type TvUser,
+} from '../lib/session';
+import { resolveIdentity } from '../services/identity.service';
 import { refreshSession, signOut as doSignOut } from '../services/auth.service';
 import { queryClient } from '../config/queryClient';
 
@@ -77,7 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (cancelled) return;
       if (alive) {
-        setUser(await getAuthUser());
+        // Resolves from storage when it can and from the API when it cannot —
+        // a paired television has a session and no stored identity.
+        setUser(await resolveIdentity());
         setIsSignedIn(true);
       }
       setIsRestoring(false);
@@ -100,10 +109,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     const token = await getAuthToken();
     if (!token) return;
-    setUser(await getAuthUser());
+    // Pairing yields a session and no identity — the pairing response carries
+    // tokens only — so who we are has to be resolved separately or the whole
+    // app runs anonymously while signed in.
+    setUser(await resolveIdentity());
     setIsSignedIn(true);
     void queryClient.invalidateQueries();
   }, []);
+
+  /**
+   * Stop pretending to be signed in when the session has been taken away.
+   *
+   * Raised by the request layer when a 401 survives a refresh, which means
+   * either the refresh token expired or somebody revoked this television from
+   * another device. The second is the whole point of showing a TV in Active
+   * sessions, and it only works if the TV notices.
+   */
+  useEffect(
+    () =>
+      onSessionEnded(() => {
+        setUser(null);
+        setIsSignedIn(false);
+        void queryClient.invalidateQueries();
+      }),
+    [],
+  );
 
   const signOut = useCallback(async () => {
     await doSignOut();
