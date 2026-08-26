@@ -31,6 +31,8 @@ export function openFeedItem(navigation: Nav, item: FeedItem) {
     poster: item.imageUrl ? cdnPath(item.imageUrl) : undefined,
     durationSeconds: item.videoDuration,
     tokenId: item.tokenId,
+    isLiked: item.isLiked,
+    isSaved: item.isSaved,
     creatorAddress: item.minter ?? item.minterUser?.address,
     creatorName: creatorName(item),
   });

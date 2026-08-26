@@ -22,6 +22,16 @@ export interface PlayerParams {
   /** Seconds. Live sources ignore it. */
   durationSeconds?: number;
   /**
+   * What the feed already said about this viewer's relationship to the post.
+   *
+   * Without these the player starts from `false` for everybody, so pressing
+   * Like on something already liked TOGGLES IT OFF while the button changes to
+   * "Liked" — the optimistic flip inverts from a wrong base and the interface
+   * ends up stating the opposite of the truth.
+   */
+  isLiked?: boolean;
+  isSaved?: boolean;
+  /**
    * The post's on-chain id, when it has one. Present for feed videos and
    * absent for IPTV — which is exactly the distinction the player needs, since
    * every engagement action is keyed on it. No tokenId, no Like button.

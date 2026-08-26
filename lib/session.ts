@@ -89,6 +89,17 @@ export async function saveSession({ token, refreshToken, expiresIn, user }: Stor
   await Promise.all(writes).catch(() => {});
 }
 
+/**
+ * Persist just the identity.
+ *
+ * Separate from `saveSession` because the identity is sometimes learned after
+ * the tokens — pairing hands over a session with no user attached — and there
+ * is no token to re-write at that point.
+ */
+export async function saveAuthUser(user: TvUser): Promise<void> {
+  await AsyncStorage.setItem(USER_KEY, JSON.stringify(user)).catch(() => {});
+}
+
 export async function getAuthUser(): Promise<TvUser | null> {
   try {
     const raw = await AsyncStorage.getItem(USER_KEY);
@@ -101,4 +112,34 @@ export async function getAuthUser(): Promise<TvUser | null> {
 export async function clearSession(): Promise<void> {
   cachedToken = null;
   await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_KEY, EXPIRES_KEY, USER_KEY]).catch(() => {});
+}
+
+/**
+ * Told when the session dies underneath the app.
+ *
+ * The request layer is where a dead session is discovered — a 401 that a
+ * refresh could not rescue — but it cannot import the auth context to say so
+ * without a cycle. So it announces here and the context listens.
+ *
+ * This is what makes "sign that television out" from another device actually
+ * work. Without it the TV keeps a revoked token, every screen fills with
+ * errors, and the navigation still shows the owner's name — which reads as the
+ * app being broken rather than as the sign-out having succeeded.
+ */
+type SessionEndListener = () => void;
+const sessionEndListeners = new Set<SessionEndListener>();
+
+export function onSessionEnded(listener: SessionEndListener): () => void {
+  sessionEndListeners.add(listener);
+  return () => sessionEndListeners.delete(listener);
+}
+
+export function announceSessionEnded(): void {
+  for (const listener of sessionEndListeners) {
+    try {
+      listener();
+    } catch {
+      // A listener that throws must not stop the others being told.
+    }
+  }
 }

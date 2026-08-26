@@ -62,8 +62,8 @@ export function PlayerScreen() {
   // The endpoints toggle rather than set, so the local flip is always what the
   // server did; re-reading would cost a round-trip mid-playback to learn
   // something already known. A failure reverts.
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(!!route.params.isLiked);
+  const [saved, setSaved] = useState(!!route.params.isSaved);
   const [likePending, setLikePending] = useState(false);
   const [savePending, setSavePending] = useState(false);
   const [tipping, setTipping] = useState(false);

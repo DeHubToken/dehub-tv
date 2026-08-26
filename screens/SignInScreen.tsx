@@ -111,6 +111,7 @@ export function SignInScreen({ onDone }: { onDone?: () => void }) {
         {mode === 'pair' && (
           <>
             <PairingPanel
+              autoFocus
               onPaired={() => {
                 void refresh();
                 onDone?.();

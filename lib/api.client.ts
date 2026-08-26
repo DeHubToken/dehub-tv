@@ -1,7 +1,13 @@
 import Constants from 'expo-constants';
 import env from '../config/env';
 import { createLogger } from './logger';
-import { getAuthToken } from './session';
+import {
+  getAuthToken,
+  getRefreshToken,
+  saveSession,
+  clearSession,
+  announceSessionEnded,
+} from './session';
 import { getDeviceHeaders } from './device';
 
 const log = createLogger('api');
@@ -49,6 +55,9 @@ export interface ApiOptions {
   withAuth?: boolean;
   timeoutMs?: number;
   signal?: AbortSignal;
+  /** Internal: set on the single replay after a successful refresh, so a 401
+   *  that survives the refresh cannot loop. */
+  isRetry?: boolean;
 }
 
 function queryString(params?: Record<string, unknown>): string {
@@ -57,6 +66,64 @@ function queryString(params?: Record<string, unknown>): string {
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
   return pairs.length ? `?${pairs.join('&')}` : '';
+}
+
+/**
+ * Rescue an expired access token, or give up and say the session is over.
+ *
+ * The access token lives fifteen minutes. On a phone that is barely noticeable
+ * because the app is opened and closed constantly; on a television, which is
+ * signed in once and then left running for hours, **it means every
+ * authenticated call starts failing a quarter of an hour in** — the saved rail
+ * empties, Like stops working, tipping stops working, and nothing says why.
+ * Refreshing only at launch is therefore not enough, and this is not an edge
+ * case but the normal path.
+ *
+ * Deliberately a raw `fetch` rather than `apiClient.post`: this is called from
+ * inside `request`, and routing it back through would be a cycle.
+ *
+ * Concurrent callers share one attempt. Six rails all 401-ing at once must
+ * produce one refresh, not six — the backend rotates refresh tokens and treats
+ * reuse as a replay, so a burst of parallel refreshes is how a session
+ * destroys itself.
+ */
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    const refreshToken = await getRefreshToken();
+    if (!refreshToken) return false;
+
+    try {
+      const res = await fetch(`${env.API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!res.ok) return false;
+
+      const body = await res.json().catch(() => null);
+      const token = body?.token ?? body?.accessToken;
+      if (!token) return false;
+
+      await saveSession({
+        token,
+        refreshToken: body.refreshToken ?? refreshToken,
+        expiresIn: body.expiresIn,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  try {
+    return await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
+  }
 }
 
 async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
@@ -68,6 +135,7 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
     withAuth = true,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     signal,
+    isRetry = false,
   } = options;
 
   const url = `${env.API_URL}${endpoint}${queryString(params)}`;
@@ -107,6 +175,20 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
     });
+
+    if (res.status === 401 && withAuth && !isRetry) {
+      // Either the fifteen-minute access token ran out — the common case on a
+      // television — or the session was revoked from another device. A refresh
+      // separates the two: if it works this was expiry, so replay the call once
+      // and the user never sees it. If it does not, the session is genuinely
+      // over and the app has to stop pretending otherwise.
+      if (await refreshAccessToken()) {
+        return request<T>(endpoint, { ...options, isRetry: true });
+      }
+      await clearSession();
+      announceSessionEnded();
+      throw new ApiError(url, 401, 'Session ended');
+    }
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
