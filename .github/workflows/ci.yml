@@ -30,6 +30,13 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # The 401 suite is the load-bearing one. Without that handling the app
+      # silently stopped working fifteen minutes after sign-in and remote
+      # sign-out did nothing — and neither failure surfaced as an error
+      # anywhere, which is exactly the kind a typecheck cannot see.
+      - name: Test
+        run: npm run test:ci
+
       # The typecheck alone does not prove the app starts. Metro resolves
       # imports its own way, and a missing native module or a bad `@env` entry
       # is invisible to tsc and fatal at launch — on a TV that means a white
