@@ -2,6 +2,7 @@
   "expo": {
     "name": "DeHub TV",
     "slug": "dehubtv",
+    "owner": "dehubapp",
     "scheme": "dehubtv",
     "version": "0.1.0",
     "orientation": "landscape",
@@ -13,7 +14,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#010305"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
       "package": "io.dehub.tv",
       "versionCode": 1,
@@ -21,7 +24,10 @@
       "compileSdkVersion": 35,
       "targetSdkVersion": 35,
       "allowBackup": false,
-      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"],
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -56,7 +62,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "37df34cf-656d-40cb-a2b7-80a6dbd3dd97"
       }
     }
   }
